@@ -8,7 +8,6 @@ import java.util.function.Function;
 
 /**
  * Builder class for creating TCP requests in Gatling simulations.
- *
  * This class provides a fluent API for configuring TCP requests, including
  * setting the request name, message payload, length header options, and validators.
  */
@@ -50,7 +49,6 @@ public class TcpRequestBuilder implements ActionBuilder {
 
     /**
      * Enables automatic addition of a length header to the message.
-     *
      * By default, the length header is set to 2-byte big-endian format.
      *
      * @return This TcpRequestBuilder instance for method chaining.
@@ -91,7 +89,6 @@ public class TcpRequestBuilder implements ActionBuilder {
 
     /**
      * Enum representing the possible formats for the length header.
-     *
      * The length header can be either 2 bytes or 4 bytes, and can use big-endian or little-endian encoding.
      */
     public enum LengthHeaderType {

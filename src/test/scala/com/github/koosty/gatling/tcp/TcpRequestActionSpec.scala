@@ -22,9 +22,9 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   // Test fixtures
   val requestName = "test-request"
-  val testMessage = "Hello World".getBytes
-  val mockClock = mock[Clock]
-  val mockNextAction = mock[Action]
+  val testMessage: Array[Byte] = "Hello World".getBytes
+  val mockClock: Clock = mock[Clock]
+  val mockNextAction: Action = mock[Action]
 
   // Create real session instead of mocking
   def createTestSession(userId: Long = 1, scenario: String = "test-scenario"): Session = {
