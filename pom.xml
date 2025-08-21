@@ -224,9 +224,11 @@
                 <artifactId>central-publishing-maven-plugin</artifactId>
                 <version>0.8.0</version>
                 <extensions>true</extensions>
-                <configuration>
-                    <publishingServerId>central</publishingServerId>
-                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-release-plugin</artifactId>
+                <version>3.0.1</version>
             </plugin>
         </plugins>
     </build>
@@ -250,6 +252,6 @@
         <url>https://github.com/koosty/gatling-tcp-plugin</url>
         <connection>scm:git:${project.scm.url}.git</connection>
         <developerConnection>scm:git:${project.scm.url}.git</developerConnection>
-        <tag>@{project.version}</tag>
+        <tag>HEAD</tag>
     </scm>
 </project>
