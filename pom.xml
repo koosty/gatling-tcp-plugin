@@ -1,7 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>io.github.koosty</groupId>
@@ -222,6 +220,7 @@
                 </executions>
                 <configuration>
                     <passphraseServerId>gpg.passphrase</passphraseServerId>
+                    <skip>${gpg.skip}</skip>
                 </configuration>
             </plugin>
             <plugin>
@@ -245,6 +244,9 @@
                     <releaseVersion>${releaseVersion}</releaseVersion>
                     <developmentVersion>${developmentVersion}</developmentVersion>
                     <goal>deploy</goal>
+                    <preparationProfiles>
+                        no-gpg
+                    </preparationProfiles>
                 </configuration>
             </plugin>
         </plugins>
@@ -271,4 +273,13 @@
         <developerConnection>scm:git:${project.scm.url}.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
+
+    <profiles>
+        <profile>
+            <id>no-gpg</id>
+            <properties>
+                <gpg.skip>true</gpg.skip>
+            </properties>
+        </profile>
+    </profiles>
 </project>
