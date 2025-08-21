@@ -220,7 +220,6 @@
                 </executions>
                 <configuration>
                     <passphraseServerId>gpg.passphrase</passphraseServerId>
-                    <skip>${gpg.skip}</skip>
                 </configuration>
             </plugin>
             <plugin>
@@ -229,7 +228,6 @@
                 <version>0.8.0</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <skipPublishing>${skipPublishing}</skipPublishing>
                     <autoPublish>true</autoPublish>
                 </configuration>
             </plugin>
@@ -240,17 +238,10 @@
                 <configuration>
                     <tagNameFormat>v@{project.version}</tagNameFormat>
                     <autoVersionSubmodules>true</autoVersionSubmodules>
-                    <pushChanges>true</pushChanges>
                     <localCheckout>true</localCheckout>
                     <releaseVersion>${releaseVersion}</releaseVersion>
                     <developmentVersion>${developmentVersion}</developmentVersion>
                     <goal>deploy</goal>
-                    <preparationProfiles>
-                        no-gpg
-                    </preparationProfiles>
-                    <releaseProfiles>
-                        dryRun
-                    </releaseProfiles>
                 </configuration>
             </plugin>
         </plugins>
@@ -277,20 +268,4 @@
         <developerConnection>scm:git:${project.scm.url}.git</developerConnection>
         <tag>HEAD</tag>
     </scm>
-
-    <profiles>
-        <profile>
-            <id>no-gpg</id>
-            <properties>
-                <gpg.skip>true</gpg.skip>
-            </properties>
-        </profile>
-        <profile>
-            <id>dryRun</id>
-            <properties>
-                <gpg.skip>true</gpg.skip>
-                <skipPublishing>true</skipPublishing>
-            </properties>
-        </profile>
-    </profiles>
 </project>
