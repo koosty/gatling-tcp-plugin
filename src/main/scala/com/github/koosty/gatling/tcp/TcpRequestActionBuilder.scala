@@ -1,15 +1,27 @@
 package com.github.koosty.gatling.tcp
 
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
 import io.gatling.core.action.Action
 import io.gatling.core.action.builder.ActionBuilder
 import io.gatling.core.structure.ScenarioContext
-import scala.jdk.CollectionConverters._
-import java.util.function.Function
 
+import java.util.function.Function
+import scala.jdk.CollectionConverters._
+
+/**
+ * Builder for creating TCP request actions in Gatling scenarios.
+ *
+ * @param requestName Name of the request.
+ * @param message Byte array representing the message to send.
+ * @param addLengthHeader Whether to add a length header to the message.
+ * @param lengthHeaderType Type of length header to use.
+ * @param validators List of Java functions to validate the response.
+ */
 class TcpRequestActionBuilder(
                                requestName: String,
                                message: Array[Byte],
-                               expectResponse: Boolean,
+                               addLengthHeader: Boolean = false,
+                               lengthHeaderType: LengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
                                validators: java.util.List[Function[Array[Byte], java.lang.Boolean]] = new java.util.ArrayList()
                              ) extends ActionBuilder {
 
@@ -24,7 +36,8 @@ class TcpRequestActionBuilder(
     new TcpRequestAction(
       requestName,
       message,
-      expectResponse,
+      addLengthHeader,
+      lengthHeaderType,
       scalaValidators,
       components.protocol,
       ctx.coreComponents.statsEngine,
