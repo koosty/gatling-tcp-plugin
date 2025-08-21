@@ -1,4 +1,6 @@
 # Gatling TCP Plugin
+![Build](https://github.com/koosty/gatling-tcp-plugin/actions/workflows/build.yml/badge.svg)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=koosty_gatling-tcp-plugin&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=koosty_gatling-tcp-plugin)
 
 A plugin for [Gatling](https://gatling.io/) to enable TCP protocol support in load tests.
 
