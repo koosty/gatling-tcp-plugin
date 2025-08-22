@@ -1,6 +1,5 @@
 name: Release to Maven Central
 on:
-  workflow_dispatch:
   push:
     branches:
       - release
@@ -37,7 +36,7 @@ jobs:
           git config user.email "actions@github.com"
 
       - name: Perform Release
-        run: mvn -B release:prepare release:perform -Darguments="-DskipPublishing=true"
+        run: mvn -B release:prepare release:perform
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MAVEN_USERNAME: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
