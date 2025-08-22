@@ -4,7 +4,7 @@
 
     <groupId>io.github.koosty</groupId>
     <artifactId>gatling-tcp-plugin</artifactId>
-    <version>0.1.0</version>
+    <version>0.2.0-SNAPSHOT</version>
     <name>TCP plugin</name>
     <description>TCP plugin for Gatling</description>
     <url>${project.scm.url}</url>
@@ -266,6 +266,6 @@
         <url>https://github.com/koosty/gatling-tcp-plugin</url>
         <connection>scm:git:${project.scm.url}.git</connection>
         <developerConnection>scm:git:${project.scm.url}.git</developerConnection>
-        <tag>v0.1.0</tag>
+        <tag>HEAD</tag>
     </scm>
 </project>
