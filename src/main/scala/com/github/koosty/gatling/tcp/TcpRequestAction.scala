@@ -18,6 +18,8 @@ import java.net.{InetSocketAddress, Socket}
  * @param addLengthHeader Whether to prepend a length header to the message.
  * @param lengthHeaderType The type of length header to use (big/little endian, 2/4 bytes).
  * @param validators List of functions to validate the response bytes.
+ * @param reuseConnection Whether to reuse an existing TCP connection.
+ * @param connectionKey Key to identify the connection in the session for reuse.
  * @param protocol TCP protocol configuration (host, port, timeouts, etc.).
  * @param statsEngine Gatling stats engine for logging results.
  * @param clock Clock instance for timing the request.
@@ -29,6 +31,8 @@ class TcpRequestAction(
                         addLengthHeader: Boolean = false,
                         lengthHeaderType: LengthHeaderType,
                         validators: List[Function[Array[Byte], Boolean]] = List.empty,
+                        reuseConnection: Boolean = false,
+                        connectionKey: String = "default",
                         protocol: TcpProtocol,
                         statsEngine: StatsEngine,
                         clock: Clock,
@@ -99,10 +103,22 @@ class TcpRequestAction(
       case LengthHeaderType.FOUR_BYTE_BIG_ENDIAN | LengthHeaderType.FOUR_BYTE_LITTLE_ENDIAN => 4
     }
   }
+
+  private def createConnection(keepAlive: Boolean, readTimeout: Int, connectTimeout: Int, inetSocketAddress: InetSocketAddress): Socket = {
+    val socket = new Socket()
+    socket.setKeepAlive(keepAlive)
+    socket.setSoTimeout(readTimeout)
+    socket.connect(inetSocketAddress, connectTimeout)
+    socket
+  }
   override def execute(session: Session): Unit = {
-    val requestId = session.userId + "-" + System.nanoTime()
+    val requestId = s"${session.userId}-${System.nanoTime()}"
+    val isa = new InetSocketAddress(protocol.host, protocol.port)
     logger.debug(s"[$requestId] Executing TCP request: $requestName")
     var socket: Socket = null
+    var shouldCloseSocket = false
+    var finalSession = session
+
     try {
       val start = clock.nowMillis
 
@@ -117,11 +133,20 @@ class TcpRequestAction(
       }
 
       // Create socket with timeout
-      logger.debug(s"[$requestId] Connecting to ${protocol.host}:${protocol.port} with timeout ${protocol.connectTimeout}ms")
-      socket = new Socket()
-      socket.setKeepAlive(protocol.keepAlive)
-      socket.setSoTimeout(protocol.readTimeout)
-      socket.connect(new InetSocketAddress(protocol.host, protocol.port), protocol.connectTimeout)
+      socket = if (reuseConnection) {
+        session(s"tcp.connection.$connectionKey").asOption[Socket] match {
+          case Some(existingSocket) if !existingSocket.isClosed && existingSocket.isConnected=>
+            logger.debug(s"[$requestId] Reusing existing connection")
+            existingSocket
+          case _ =>
+            logger.debug(s"[$requestId] Creating new connection to ${protocol.host}:${protocol.port} with timeout ${protocol.connectTimeout}ms")
+            createConnection(protocol.keepAlive, protocol.readTimeout, protocol.connectTimeout, isa)
+        }
+      } else {
+        shouldCloseSocket = true // Always close if not reusing
+        logger.debug(s"[$requestId] Creating new connection to ${protocol.host}:${protocol.port} with timeout ${protocol.connectTimeout}ms")
+        createConnection(protocol.keepAlive, protocol.readTimeout, protocol.connectTimeout, isa)
+      }
 
       val out: OutputStream = socket.getOutputStream
       val in: InputStream = socket.getInputStream
@@ -211,12 +236,23 @@ class TcpRequestAction(
           responseCode = None,
           message = None
         )
-        next ! session.set(s"${requestName}.response", responseBytes)
-          .set(s"${requestName}.bytesReceived", totalBytesRead)
-          .set(s"${requestName}.bytesSent", message.length)
         logger.debug(s"[$requestId] Request successful, response length: $totalBytesRead")
+        // Update session with response data AND connection
+        finalSession = session
+          .set(s"$requestName.response", responseBytes)
+          .set(s"$requestName.bytesReceived", totalBytesRead)
+          .set(s"$requestName.bytesSent", message.length)
+
+        // Store connection for reuse if needed
+        if (reuseConnection && !socket.isClosed) {
+          finalSession = finalSession.set(s"tcp.connection.$connectionKey", socket)
+        } else {
+          shouldCloseSocket = true
+        }
       } else {
         logger.warn(s"[$requestId] Response validation failed: ${validationErrors.mkString(", ")}")
+        // Handle validation failure (same logic as yours)
+        shouldCloseSocket = true // Close connection on validation failure
         val errorMessage = if (validationErrors.nonEmpty) {
           validationErrors.mkString("; ")
         } else {
@@ -233,10 +269,10 @@ class TcpRequestAction(
           responseCode = None,
           message = Some(errorMessage)
         )
-
-        next ! session.set(s"${requestName}.response", responseBytes)
-          .set(s"${requestName}.responseString", new String(responseBytes))
-          .set(s"${requestName}.validationError", errorMessage)
+        finalSession = session
+          .set(s"$requestName.response", responseBytes)
+          .set(s"$requestName.responseString", new String(responseBytes))
+          .set(s"$requestName.validationError", errorMessage)
           .markAsFailed
       }
 
@@ -252,7 +288,7 @@ class TcpRequestAction(
           status = KO,
           responseCode = None,
           message = Some("Timeout"))
-        next ! session.markAsFailed  // Add this line
+        finalSession = session.markAsFailed
       case e: java.net.ConnectException =>
         logger.error(s"[$requestId] Connection failed: ${e.getMessage}")
         statsEngine.logResponse(
@@ -265,7 +301,7 @@ class TcpRequestAction(
           responseCode = None,
           message = Some("Connection failed")
         )
-        next ! session.markAsFailed  // Add this line
+        finalSession = session.markAsFailed
       case e: Exception =>
         logger.error(s"[$requestId] Unexpected error: ${e.getMessage}", e)
         statsEngine.logResponse(
@@ -278,9 +314,23 @@ class TcpRequestAction(
           responseCode = None,
           message = Some(e.getMessage)
         )
-        next ! session.markAsFailed
+        finalSession = session.markAsFailed
     } finally {
-      if (socket != null) socket.close()
+      // Clean up socket if needed
+      if (socket != null && shouldCloseSocket) {
+        try {
+          socket.close()
+          // Remove from session if it was stored
+          if (reuseConnection) {
+            finalSession = finalSession.remove(s"tcp.connection.$connectionKey")
+          }
+        } catch {
+          case e: Exception =>
+            logger.warn(s"[$requestId] Error closing socket: ${e.getMessage}")
+        }
+      }
+      // Always pass the final session to next action
+      next ! finalSession
     }
   }
 }

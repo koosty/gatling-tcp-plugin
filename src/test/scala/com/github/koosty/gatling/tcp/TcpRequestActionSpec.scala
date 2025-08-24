@@ -4,13 +4,18 @@ import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
 import io.gatling.core.action.Action
 import io.gatling.core.session.Session
 import io.gatling.core.stats.StatsEngine
-import io.gatling.commons.stats.{KO, OK}
+import io.gatling.commons.stats.{KO, OK, Status}
 import io.gatling.commons.util.Clock
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import org.mockito.invocation.InvocationOnMock
+import org.mockito.stubbing.Answer
+import org.scalatest.concurrent.Eventually.eventually
 import org.scalatestplus.mockito.MockitoSugar
+import org.scalatest.concurrent.Eventually.timeout
+import org.scalatest.time.{Seconds, Span}
 
 import java.net.{ServerSocket, Socket}
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream}
@@ -543,6 +548,93 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       status = OK,
       responseCode = None,
       message = None
+    )
+
+    serverSocket.close()
+  }
+
+  it should "handle connection reuse correctly" in {
+    val mockStatsEngine = mock[StatsEngine]
+    val serverSocket = new ServerSocket(0)
+    val port = serverSocket.getLocalPort
+    val responseData = "Response".getBytes
+
+    when(mockClock.nowMillis).thenReturn(1000L, 2000L, 3000L, 4000L)
+
+    val latch = new CountDownLatch(2)
+    var capturedSession: Session = null
+
+    // Capture the updated session
+    when(mockNextAction.!(any[Session])).thenAnswer((invocation: InvocationOnMock) => {
+      capturedSession = invocation.getArgument[Session](0)
+    })
+
+    Future {
+      val clientSocket = serverSocket.accept()
+      val in = clientSocket.getInputStream
+      val out = clientSocket.getOutputStream
+
+      try {
+        println("Server: Waiting for first request")
+        val buffer1 = new Array[Byte](1024)
+        in.read(buffer1)
+        out.write(responseData)
+        out.flush()
+        latch.countDown()
+        println(s"Server: First request handled, latch: ${latch.getCount}")
+
+        println("Server: Waiting for second request")
+        val buffer2 = new Array[Byte](1024)
+        in.read(buffer2)
+        out.write(responseData)
+        out.flush()
+        latch.countDown()
+        println(s"Server: Second request handled, latch: ${latch.getCount}")
+
+      } catch {
+        case e: Exception =>
+          println(s"Server error: ${e.getMessage}")
+          e.printStackTrace()
+      } finally {
+        clientSocket.close()
+        println("Server: Connection closed")
+      }
+    }
+
+    val action = new TcpRequestAction(
+      requestName = requestName,
+      message = testMessage,
+      addLengthHeader = false,
+      lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
+      reuseConnection = true,
+      connectionKey = "test-connection",
+      protocol = createTcpProtocol(port = port),
+      statsEngine = mockStatsEngine,
+      clock = mockClock,
+      next = mockNextAction
+    )
+
+    val initialSession = createTestSession()
+
+    println("Test: Executing first request")
+    action.execute(initialSession)
+
+    // Wait for first request to complete and session to be captured
+    eventually(timeout(Span(2, Seconds))) {
+      capturedSession should not be null
+    }
+
+    println("Test: Executing second request")
+    action.execute(capturedSession)
+
+    val result = latch.await(5, TimeUnit.SECONDS)
+    println(s"Test: Latch result: $result, count: ${latch.getCount}")
+
+    result shouldBe true
+
+    verify(mockStatsEngine, times(2)).logResponse(
+      any[String], any[List[String]], any[String], any[Long], any[Long],
+      any[Status], any[Option[String]], any[Option[String]]
     )
 
     serverSocket.close()

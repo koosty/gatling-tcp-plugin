@@ -16,13 +16,17 @@ import scala.jdk.CollectionConverters._
  * @param addLengthHeader Whether to add a length header to the message.
  * @param lengthHeaderType Type of length header to use.
  * @param validators List of Java functions to validate the response.
+ * @param reuseConnection Whether to reuse an existing connection.
+ * @param connectionKey Key to identify the connection in the session.
  */
 class TcpRequestActionBuilder(
                                requestName: String,
                                message: Array[Byte],
                                addLengthHeader: Boolean = false,
                                lengthHeaderType: LengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
-                               validators: java.util.List[Function[Array[Byte], java.lang.Boolean]] = new java.util.ArrayList()
+                               validators: java.util.List[Function[Array[Byte], java.lang.Boolean]] = new java.util.ArrayList(),
+                               reuseConnection: Boolean = false,
+                               connectionKey: String = "default",
                              ) extends ActionBuilder {
 
   override def build(ctx: ScenarioContext, next: Action): Action = {
@@ -39,6 +43,8 @@ class TcpRequestActionBuilder(
       addLengthHeader,
       lengthHeaderType,
       scalaValidators,
+      reuseConnection,
+      connectionKey,
       components.protocol,
       ctx.coreComponents.statsEngine,
       ctx.coreComponents.clock,

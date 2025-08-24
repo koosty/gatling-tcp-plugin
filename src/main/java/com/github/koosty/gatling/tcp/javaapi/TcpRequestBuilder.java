@@ -17,6 +17,8 @@ public class TcpRequestBuilder implements ActionBuilder {
     private boolean addLengthHeader = false;
     private LengthHeaderType lengthHeaderType;
     private final List<Function<byte[], Boolean>> validators = new ArrayList<>();
+    private boolean reuseConnection = false;
+    private String connectionKey = "default";
     /**
      * Constructs a TcpRequestBuilder with a specified request name.
      *
@@ -72,6 +74,40 @@ public class TcpRequestBuilder implements ActionBuilder {
     }
 
     /**
+     * Enables connection reuse for this TCP request.
+     * When enabled, the same TCP connection will be reused for multiple requests.
+     *
+     * @return This TcpRequestBuilder instance for method chaining.
+     */
+    public  TcpRequestBuilder withReuseConnection() {
+        this.reuseConnection = true;
+        return this;
+    }
+
+    /**
+     * Sets whether to reuse the TCP connection for this request.
+     *
+     * @param reuseConnection A boolean indicating whether to reuse the connection.
+     * @return This TcpRequestBuilder instance for method chaining.
+     */
+    public  TcpRequestBuilder withReuseConnection(boolean reuseConnection) {
+        this.reuseConnection = reuseConnection;
+        return this;
+    }
+
+    /**
+     * Sets a custom connection key to identify the TCP connection.
+     * This is useful when managing multiple connections in a simulation.
+     *
+     * @param connectionKey A string representing the connection key.
+     * @return This TcpRequestBuilder instance for method chaining.
+     */
+    public TcpRequestBuilder withConnectionKey(String connectionKey) {
+        this.connectionKey = connectionKey;
+        return this;
+    }
+
+    /**
      * Converts this Java-based TCP request builder into a Scala-based action builder.
      *
      * @return A Scala-compatible ActionBuilder instance configured with the current settings.
@@ -83,7 +119,9 @@ public class TcpRequestBuilder implements ActionBuilder {
                 message,
                 addLengthHeader,
                 lengthHeaderType,
-                validators
+                validators,
+                reuseConnection,
+                connectionKey
         );
     }
 
