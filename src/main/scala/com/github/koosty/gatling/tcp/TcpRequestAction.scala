@@ -25,7 +25,7 @@ import java.net.{InetSocketAddress, Socket}
  * @param clock Clock instance for timing the request.
  * @param next The next action to execute in the scenario.
  */
-class TcpRequestAction(
+case class TcpRequestAction(
                         requestName: String,
                         message: Array[Byte],
                         addLengthHeader: Boolean = false,

@@ -19,7 +19,7 @@ import scala.jdk.CollectionConverters._
  * @param reuseConnection Whether to reuse an existing connection.
  * @param connectionKey Key to identify the connection in the session.
  */
-class TcpRequestActionBuilder(
+case class TcpRequestActionBuilder(
                                requestName: String,
                                message: Array[Byte],
                                addLengthHeader: Boolean = false,
@@ -37,7 +37,7 @@ class TcpRequestActionBuilder(
     val scalaValidators: List[Array[Byte] => Boolean] = validators.asScala.toList.map { javaFunc =>
       (bytes: Array[Byte]) => javaFunc.apply(bytes)
     }
-    new TcpRequestAction(
+    TcpRequestAction(
       requestName,
       message,
       addLengthHeader,
