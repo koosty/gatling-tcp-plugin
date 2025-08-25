@@ -33,20 +33,20 @@ public class TcpDsl {
      * @param requestName the name of the TCP request
      * @return a TcpRequestBuilderInit instance for further configuration
      */
-    public static TcpRequestBuilder tcp(String requestName) {
+    public static TcpRequestActionBuilder tcp(String requestName, byte[] message) {
         Objects.requireNonNull(requestName, "Request name must not be null");
-        return new TcpRequestBuilder(requestName);
+        return new TcpRequestActionBuilder(com.github.koosty.gatling.tcp.TcpRequestActionBuilder.request(requestName, message));
     }
 
     /**
      * Prepends a length header to the given message using the default
-     * {@link TcpRequestBuilder.LengthHeaderType#TWO_BYTE_BIG_ENDIAN} format.
+     * {@link TcpRequestActionBuilder.LengthHeaderType#TWO_BYTE_BIG_ENDIAN} format.
      *
      * @param message the message to format
      * @return the message with a length header prepended
      */
     public static byte[] withLengthHeader(byte[] message) {
-        return withLengthHeader(message, TcpRequestBuilder.LengthHeaderType.TWO_BYTE_BIG_ENDIAN);
+        return withLengthHeader(message, TcpRequestActionBuilder.LengthHeaderType.TWO_BYTE_BIG_ENDIAN);
     }
 
     /**
@@ -57,9 +57,9 @@ public class TcpDsl {
      * @param headerType the type of length header to use
      * @return the message with a length header prepended
      */
-    public static byte[] withLengthHeader(byte[] message, TcpRequestBuilder.LengthHeaderType headerType) {
-        int headerSize = (headerType == TcpRequestBuilder.LengthHeaderType.TWO_BYTE_BIG_ENDIAN ||
-                headerType == TcpRequestBuilder.LengthHeaderType.TWO_BYTE_LITTLE_ENDIAN) ? 2 : 4;
+    public static byte[] withLengthHeader(byte[] message, TcpRequestActionBuilder.LengthHeaderType headerType) {
+        int headerSize = (headerType == TcpRequestActionBuilder.LengthHeaderType.TWO_BYTE_BIG_ENDIAN ||
+                headerType == TcpRequestActionBuilder.LengthHeaderType.TWO_BYTE_LITTLE_ENDIAN) ? 2 : 4;
 
         byte[] result = new byte[message.length + headerSize];
 
@@ -70,7 +70,7 @@ public class TcpDsl {
         return result;
     }
 
-    private static byte[] createLengthHeaderBytes(int length, TcpRequestBuilder.LengthHeaderType headerType) {
+    private static byte[] createLengthHeaderBytes(int length, TcpRequestActionBuilder.LengthHeaderType headerType) {
         switch (headerType) {
             case TWO_BYTE_BIG_ENDIAN:
                 return new byte[]{

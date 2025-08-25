@@ -1,9 +1,10 @@
 package com.github.koosty.gatling.tcp
 
-import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestActionBuilder.LengthHeaderType
 import io.gatling.core.action.Action
 import io.gatling.core.action.builder.ActionBuilder
 import io.gatling.core.structure.ScenarioContext
+import io.gatling.internal.quicklens._
 
 import java.util.function.Function
 import scala.jdk.CollectionConverters._
@@ -16,14 +17,34 @@ import scala.jdk.CollectionConverters._
  * @param addLengthHeader Whether to add a length header to the message.
  * @param lengthHeaderType Type of length header to use.
  * @param validators List of Java functions to validate the response.
+ * @param reuseConnection Whether to reuse an existing connection.
+ * @param connectionKey Key to identify the connection in the session.
  */
-class TcpRequestActionBuilder(
+case class TcpRequestActionBuilder(
                                requestName: String,
                                message: Array[Byte],
                                addLengthHeader: Boolean = false,
                                lengthHeaderType: LengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
-                               validators: java.util.List[Function[Array[Byte], java.lang.Boolean]] = new java.util.ArrayList()
+                               validators: java.util.List[Function[Array[Byte], java.lang.Boolean]] = new java.util.ArrayList(),
+                               reuseConnection: Boolean = false,
+                               connectionKey: String = "default",
                              ) extends ActionBuilder {
+
+  def addLengthHeader(addLengthHeader: Boolean): TcpRequestActionBuilder = {
+    this.modify(_.addLengthHeader).setTo(addLengthHeader)
+  }
+  def lengthHeaderType(lengthHeaderType: LengthHeaderType): TcpRequestActionBuilder = {
+    this.modify(_.lengthHeaderType).setTo(lengthHeaderType)
+  }
+  def validators(validators: java.util.List[Function[Array[Byte], java.lang.Boolean]]): TcpRequestActionBuilder = {
+    this.modify(_.validators).setTo(validators)
+  }
+  def reuseConnection(reuseConnection: Boolean): TcpRequestActionBuilder = {
+    this.modify(_.reuseConnection).setTo(reuseConnection)
+  }
+  def connectionKey(connectionKey: String): TcpRequestActionBuilder = {
+    this.modify(_.connectionKey).setTo(connectionKey)
+  }
 
   override def build(ctx: ScenarioContext, next: Action): Action = {
     val components = ctx.protocolComponentsRegistry
@@ -33,16 +54,22 @@ class TcpRequestActionBuilder(
     val scalaValidators: List[Array[Byte] => Boolean] = validators.asScala.toList.map { javaFunc =>
       (bytes: Array[Byte]) => javaFunc.apply(bytes)
     }
-    new TcpRequestAction(
+    TcpRequestAction(
       requestName,
       message,
       addLengthHeader,
       lengthHeaderType,
       scalaValidators,
+      reuseConnection,
+      connectionKey,
       components.protocol,
       ctx.coreComponents.statsEngine,
       ctx.coreComponents.clock,
       next
     )
   }
+}
+
+object TcpRequestActionBuilder {
+  def request(requestName: String, message: Array[Byte]): TcpRequestActionBuilder = new TcpRequestActionBuilder(requestName, message)
 }

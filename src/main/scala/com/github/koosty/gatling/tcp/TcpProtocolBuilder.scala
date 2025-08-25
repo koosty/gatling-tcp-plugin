@@ -1,68 +1,81 @@
 package com.github.koosty.gatling.tcp
 
-import io.gatling.core.protocol.Protocol
+import io.gatling.internal.quicklens._
+
+import java.util.Objects
 
 /** Builder class for creating TCP protocol configurations in Gatling.
  *
  * This class provides a fluent builder interface for configuring TCP connection parameters
  * used in Gatling performance tests.
  */
-class TcpProtocolBuilder {
-  private var _host: String = "localhost"
-  private var _port: Int = 2222
-  private var _connectTimeout: Int = 50000
-  private var _readTimeout: Int = 10000
-  private var _keepAlive: Boolean = true
-  private var _reuseConnections: Boolean = true
+case class TcpProtocolBuilder(
+                               host: String = "localhost",
+                               port: Int = 2222,
+                               connectTimeout: Int = 50000,
+                               readTimeout: Int = 10000,
+                               keepAlive: Boolean = true,
+                               reuseConnections: Boolean = true
+                             ) {
+
 
   /** Sets the target host for TCP connections.
    *
-   * @param h The hostname or IP address to connect to
+   * @param host The hostname or IP address to connect to
    * @return This builder instance for method chaining
    */
-  def host(h: String): TcpProtocolBuilder = { _host = h; this }
+  def host(host: String): TcpProtocolBuilder = {
+    Objects.requireNonNull(host, "Host cannot be null")
+    this.modify(_.host).setTo(host)
+  }
 
   /** Sets the TCP port number to connect to.
    *
-   * @param p The port number
+   * @param port The port number
    * @return This builder instance for method chaining
    */
-  def port(p: Int): TcpProtocolBuilder = { _port = p; this }
+  def port(port: Int): TcpProtocolBuilder = {
+    if (port<1 || port>65535) {
+      throw new IllegalArgumentException(s"Port number must be between 1 and 65535, got: $port")
+    }
+
+    this.modify(_.port).setTo(port)
+  }
 
   /** Sets the connection timeout value.
    *
-   * @param timeout The timeout in milliseconds for establishing new connections
+   * @param connectTimeout The timeout in milliseconds for establishing new connections
    * @return This builder instance for method chaining
    */
-  def connectTimeout(timeout: Int): TcpProtocolBuilder = { _connectTimeout = timeout; this }
+  def connectTimeout(connectTimeout: Int): TcpProtocolBuilder = this.modify(_.connectTimeout).setTo(connectTimeout)
 
   /** Sets the read timeout value.
    *
-   * @param timeout The timeout in milliseconds for reading data from the connection
+   * @param readTimeout The timeout in milliseconds for reading data from the connection
    * @return This builder instance for method chaining
    */
-  def readTimeout(timeout: Int): TcpProtocolBuilder = { _readTimeout = timeout; this }
+  def readTimeout(readTimeout: Int): TcpProtocolBuilder = this.modify(_.readTimeout).setTo(readTimeout)
 
   /** Enables or disables TCP keep-alive.
    *
-   * @param enabled Whether to enable TCP keep-alive
+   * @param keepAlive Whether to enable TCP keep-alive
    * @return This builder instance for method chaining
    */
-  def keepAlive(enabled: Boolean): TcpProtocolBuilder = { _keepAlive = enabled; this }
+  def keepAlive(keepAlive: Boolean): TcpProtocolBuilder = this.modify(_.keepAlive).setTo(keepAlive)
 
   /** Controls whether connections should be reused across requests.
    *
-   * @param enabled Whether to enable connection reuse
+   * @param reuseConnections Whether to enable connection reuse
    * @return This builder instance for method chaining
    */
-  def reuseConnections(enabled: Boolean): TcpProtocolBuilder = { _reuseConnections = enabled; this }
+  def reuseConnections(reuseConnections: Boolean): TcpProtocolBuilder = this.modify(_.reuseConnections).setTo(reuseConnections)
 
   /** Builds and returns the final TCP protocol configuration.
    *
    * @return A Protocol instance configured with the current builder settings
    */
-  def protocol(): Protocol = {
-    TcpProtocol(_host, _port, _connectTimeout, _readTimeout, _keepAlive)
+  def protocol(): TcpProtocol = {
+    TcpProtocol(host, port, connectTimeout, readTimeout, keepAlive, reuseConnections)
   }
 }
 

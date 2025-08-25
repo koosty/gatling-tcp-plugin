@@ -1,22 +1,24 @@
 package com.github.koosty.gatling.tcp
 
-import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestActionBuilder.LengthHeaderType
+import io.gatling.commons.stats.{KO, OK, Status}
+import io.gatling.commons.util.Clock
 import io.gatling.core.action.Action
 import io.gatling.core.session.Session
 import io.gatling.core.stats.StatsEngine
-import io.gatling.commons.stats.{KO, OK}
-import io.gatling.commons.util.Clock
-import org.scalatest.flatspec.AnyFlatSpec
-import org.scalatest.matchers.should.Matchers
 import org.mockito.ArgumentMatchers._
 import org.mockito.Mockito._
+import org.mockito.invocation.InvocationOnMock
+import org.scalatest.concurrent.Eventually.{eventually, timeout}
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.time.{Seconds, Span}
 import org.scalatestplus.mockito.MockitoSugar
 
-import java.net.{ServerSocket, Socket}
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, InputStream, OutputStream}
+import java.net.ServerSocket
 import java.util.concurrent.{CountDownLatch, TimeUnit}
-import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
@@ -41,7 +43,8 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       port = port,
       connectTimeout = 1000,
       readTimeout = 1000,
-      keepAlive = false
+      keepAlive = false,
+      reuseConnections = true
     )
   }
 
@@ -49,7 +52,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "have correct name" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
@@ -64,7 +67,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "create correct length header for TWO_BYTE_BIG_ENDIAN" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       addLengthHeader = true,
@@ -85,7 +88,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "create correct length header for TWO_BYTE_LITTLE_ENDIAN" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       addLengthHeader = true,
@@ -105,7 +108,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "create correct length header for FOUR_BYTE_BIG_ENDIAN" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       addLengthHeader = true,
@@ -125,7 +128,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "create correct length header for FOUR_BYTE_LITTLE_ENDIAN" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       addLengthHeader = true,
@@ -145,7 +148,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "read length from TWO_BYTE_BIG_ENDIAN header correctly" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
@@ -164,7 +167,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "read length from TWO_BYTE_LITTLE_ENDIAN header correctly" in {
     val mockStatsEngine = mock[StatsEngine]
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_LITTLE_ENDIAN,
@@ -183,7 +186,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
 
   it should "return correct header size for different types" in {
     val mockStatsEngine = mock[StatsEngine]
-    val twoByteAction = new TcpRequestAction(
+    val twoByteAction = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
@@ -193,7 +196,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       next = mockNextAction
     )
 
-    val fourByteAction = new TcpRequestAction(
+    val fourByteAction = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       lengthHeaderType = LengthHeaderType.FOUR_BYTE_BIG_ENDIAN,
@@ -243,10 +246,9 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       latch.countDown()
     }
 
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
-      addLengthHeader = false,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
       protocol = createTcpProtocol(port = port),
       statsEngine = mockStatsEngine,
@@ -314,7 +316,7 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       latch.countDown()
     }
 
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
       addLengthHeader = true,
@@ -369,10 +371,9 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     // Validator that always fails
     val failingValidator: Function[Array[Byte], Boolean] = _ => false
 
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
-      addLengthHeader = false,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
       validators = List(failingValidator),
       protocol = createTcpProtocol(port = port),
@@ -402,17 +403,17 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val mockStatsEngine = mock[StatsEngine]
     when(mockClock.nowMillis).thenReturn(1000L)
 
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
-      addLengthHeader = false,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
       protocol = TcpProtocol(
         host = "192.0.2.1", // Non-routable IP for timeout
         port = 12345,
         connectTimeout = 100,
         readTimeout = 100,
-        keepAlive = false
+        keepAlive = false,
+        reuseConnections = false
       ),
       statsEngine = mockStatsEngine,
       clock = mockClock,
@@ -460,10 +461,9 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     // Validator that throws exception
     val throwingValidator: Function[Array[Byte], Boolean] = _ => throw new RuntimeException("Validation error")
 
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
-      addLengthHeader = false,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
       validators = List(throwingValidator),
       protocol = createTcpProtocol(port = port),
@@ -518,10 +518,9 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
     val validator1: Function[Array[Byte], Boolean] = data => data.length > 0
     val validator2: Function[Array[Byte], Boolean] = data => new String(data).contains("Valid")
 
-    val action = new TcpRequestAction(
+    val action = TcpRequestAction(
       requestName = requestName,
       message = testMessage,
-      addLengthHeader = false,
       lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
       validators = List(validator1, validator2),
       protocol = createTcpProtocol(port = port),
@@ -543,6 +542,92 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       status = OK,
       responseCode = None,
       message = None
+    )
+
+    serverSocket.close()
+  }
+
+  it should "handle connection reuse correctly" in {
+    val mockStatsEngine = mock[StatsEngine]
+    val serverSocket = new ServerSocket(0)
+    val port = serverSocket.getLocalPort
+    val responseData = "Response".getBytes
+
+    when(mockClock.nowMillis).thenReturn(1000L, 2000L, 3000L, 4000L)
+
+    val latch = new CountDownLatch(2)
+    var capturedSession: Session = null
+
+    // Capture the updated session
+    when(mockNextAction.!(any[Session])).thenAnswer((invocation: InvocationOnMock) => {
+      capturedSession = invocation.getArgument[Session](0)
+    })
+
+    Future {
+      val clientSocket = serverSocket.accept()
+      val in = clientSocket.getInputStream
+      val out = clientSocket.getOutputStream
+
+      try {
+        println("Server: Waiting for first request")
+        val buffer1 = new Array[Byte](1024)
+        in.read(buffer1)
+        out.write(responseData)
+        out.flush()
+        latch.countDown()
+        println(s"Server: First request handled, latch: ${latch.getCount}")
+
+        println("Server: Waiting for second request")
+        val buffer2 = new Array[Byte](1024)
+        in.read(buffer2)
+        out.write(responseData)
+        out.flush()
+        latch.countDown()
+        println(s"Server: Second request handled, latch: ${latch.getCount}")
+
+      } catch {
+        case e: Exception =>
+          println(s"Server error: ${e.getMessage}")
+          e.printStackTrace()
+      } finally {
+        clientSocket.close()
+        println("Server: Connection closed")
+      }
+    }
+
+    val action = TcpRequestAction(
+      requestName = requestName,
+      message = testMessage,
+      lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN,
+      reuseConnection = true,
+      connectionKey = "test-connection",
+      protocol = createTcpProtocol(port = port),
+      statsEngine = mockStatsEngine,
+      clock = mockClock,
+      next = mockNextAction
+    )
+
+    val initialSession = createTestSession()
+
+    println("Test: Executing first request")
+    action.execute(initialSession)
+
+    // Wait for first request to complete and session to be captured
+    eventually(timeout(Span(2, Seconds))) {
+      capturedSession should not be null
+    }
+
+    println("Test: Executing second request")
+    action.execute(capturedSession)
+
+    val result = latch.await(5, TimeUnit.SECONDS)
+    println(s"Test: Latch result: $result, count: ${latch.getCount}")
+
+    result shouldBe true
+
+    verify(mockStatsEngine, times(2)).logResponse(
+      any[String], any[List[String]], any[String], any[Long], any[Long],
+      any[Status], any[Option[String]], any[Option[String]]
     )
 
     serverSocket.close()
