@@ -1,5 +1,6 @@
 package com.github.koosty.gatling.tcp.javaapi;
 
+import com.github.koosty.gatling.tcp.TcpProtocol;
 import io.gatling.core.protocol.Protocol;
 import io.gatling.javaapi.core.ProtocolBuilder;
 
@@ -82,7 +83,7 @@ public class TcpProtocolBuilder implements ProtocolBuilder {
      * @return the configured Protocol
      */
     @Override
-    public Protocol protocol() {
+    public TcpProtocol protocol() {
         return wrapped.protocol();
     }
 }

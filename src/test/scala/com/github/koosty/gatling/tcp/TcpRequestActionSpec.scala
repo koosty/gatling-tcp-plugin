@@ -1,6 +1,6 @@
 package com.github.koosty.gatling.tcp
 
-import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestActionBuilder.LengthHeaderType
 import io.gatling.commons.stats.{KO, OK, Status}
 import io.gatling.commons.util.Clock
 import io.gatling.core.action.Action
@@ -43,7 +43,8 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
       port = port,
       connectTimeout = 1000,
       readTimeout = 1000,
-      keepAlive = false
+      keepAlive = false,
+      reuseConnections = true
     )
   }
 
@@ -411,7 +412,8 @@ class TcpRequestActionSpec extends AnyFlatSpec with Matchers with MockitoSugar {
         port = 12345,
         connectTimeout = 100,
         readTimeout = 100,
-        keepAlive = false
+        keepAlive = false,
+        reuseConnections = false
       ),
       statsEngine = mockStatsEngine,
       clock = mockClock,

@@ -1,17 +1,9 @@
 package com.github.koosty.gatling.tcp
 
-import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
-import io.gatling.commons.util.Clock
-import io.gatling.core.action.Action
-import io.gatling.core.protocol.ProtocolComponentsRegistry
-import io.gatling.core.stats.StatsEngine
-import io.gatling.core.structure.ScenarioContext
-import org.mockito.Mockito.when
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestActionBuilder.LengthHeaderType
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
-
-import scala.jdk.CollectionConverters.ListHasAsScala
 
 class TcpRequestActionBuilderSpec extends AnyFlatSpec with Matchers with MockitoSugar{
   it should "store default parameters correctly" in {

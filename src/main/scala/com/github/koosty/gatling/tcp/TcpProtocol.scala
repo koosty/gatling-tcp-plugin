@@ -13,7 +13,7 @@ import io.gatling.core.session.Session
  * @param readTimeout The timeout in milliseconds for reading data from the connection
  * @param keepAlive Whether to use TCP keep-alive
  */
-case class TcpProtocol(host: String, port: Int, connectTimeout: Int, readTimeout: Int, keepAlive: Boolean) extends Protocol
+case class TcpProtocol(host: String, port: Int, connectTimeout: Int, readTimeout: Int, keepAlive: Boolean, reuseConnections: Boolean) extends Protocol
 
 /** Components for managing TCP protocol state during Gatling simulations.
  *
@@ -51,7 +51,7 @@ object TcpProtocol {
      * @return A TcpProtocol instance with default settings
      */
     override def defaultProtocolValue(configuration: GatlingConfiguration): TcpProtocol =
-      TcpProtocol("localhost", 2222, 5000, 10000, keepAlive = true)
+      TcpProtocol("localhost", 2222, 5000, 10000, keepAlive = true, reuseConnections = true)
 
     /** Creates new protocol components for a simulation.
      *

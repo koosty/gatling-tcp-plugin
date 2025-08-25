@@ -27,8 +27,7 @@ public class TestSimulation extends Simulation {
 
     ScenarioBuilder scn = scenario("TEST")
             .exec(
-                    tcp("SEND DATA")
-                            .withMessage("DATA".getBytes())
+                    tcp("SEND DATA", "DATA".getBytes())
                             .withLengthHeader()
                             .withCheck(TcpValidators.notEmpty())
             );

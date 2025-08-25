@@ -1,9 +1,10 @@
 package com.github.koosty.gatling.tcp
 
-import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestActionBuilder.LengthHeaderType
 import io.gatling.core.action.Action
 import io.gatling.core.action.builder.ActionBuilder
 import io.gatling.core.structure.ScenarioContext
+import io.gatling.internal.quicklens._
 
 import java.util.function.Function
 import scala.jdk.CollectionConverters._
@@ -29,6 +30,22 @@ case class TcpRequestActionBuilder(
                                connectionKey: String = "default",
                              ) extends ActionBuilder {
 
+  def addLengthHeader(addLengthHeader: Boolean): TcpRequestActionBuilder = {
+    this.modify(_.addLengthHeader).setTo(addLengthHeader)
+  }
+  def lengthHeaderType(lengthHeaderType: LengthHeaderType): TcpRequestActionBuilder = {
+    this.modify(_.lengthHeaderType).setTo(lengthHeaderType)
+  }
+  def validators(validators: java.util.List[Function[Array[Byte], java.lang.Boolean]]): TcpRequestActionBuilder = {
+    this.modify(_.validators).setTo(validators)
+  }
+  def reuseConnection(reuseConnection: Boolean): TcpRequestActionBuilder = {
+    this.modify(_.reuseConnection).setTo(reuseConnection)
+  }
+  def connectionKey(connectionKey: String): TcpRequestActionBuilder = {
+    this.modify(_.connectionKey).setTo(connectionKey)
+  }
+
   override def build(ctx: ScenarioContext, next: Action): Action = {
     val components = ctx.protocolComponentsRegistry
       .components(TcpProtocol.TcpProtocolKey)
@@ -51,4 +68,8 @@ case class TcpRequestActionBuilder(
       next
     )
   }
+}
+
+object TcpRequestActionBuilder {
+  def request(requestName: String, message: Array[Byte]): TcpRequestActionBuilder = new TcpRequestActionBuilder(requestName, message)
 }

@@ -2,8 +2,6 @@ package com.github.koosty.gatling.tcp.javaapi;
 
 import io.gatling.javaapi.core.ActionBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Function;
 
 /**
@@ -11,31 +9,11 @@ import java.util.function.Function;
  * This class provides a fluent API for configuring TCP requests, including
  * setting the request name, message payload, length header options, and validators.
  */
-public class TcpRequestBuilder implements ActionBuilder {
-    private final String requestName;
-    private byte[] message;
-    private boolean addLengthHeader = false;
-    private LengthHeaderType lengthHeaderType;
-    private final List<Function<byte[], Boolean>> validators = new ArrayList<>();
-    private boolean reuseConnection = false;
-    private String connectionKey = "default";
-    /**
-     * Constructs a TcpRequestBuilder with a specified request name.
-     *
-     * @param requestName The name of the TCP request, used for identification in reports.
-     */
-    public TcpRequestBuilder(String requestName) {
-        this.requestName = requestName;
-    }
+public class TcpRequestActionBuilder implements ActionBuilder {
+    private final com.github.koosty.gatling.tcp.TcpRequestActionBuilder wrapped;
 
-    /**
-     * Constructs a TcpRequestBuilder with a specified message payload.
-     *
-     * @param message The byte array representing the TCP message to be sent.
-     */
-    public TcpRequestBuilder withMessage(byte[] message) {
-        this.message = message;
-        return this;
+    public TcpRequestActionBuilder(com.github.koosty.gatling.tcp.TcpRequestActionBuilder wrapped) {
+        this.wrapped = wrapped;
     }
 
     /**
@@ -44,9 +22,9 @@ public class TcpRequestBuilder implements ActionBuilder {
      * @param validator A function that takes a byte array (response) and returns a boolean indicating validation success.
      * @return This TcpRequestBuilder instance for method chaining.
      */
-    public TcpRequestBuilder withCheck(Function<byte[], Boolean> validator) {
-        this.validators.add(validator);
-        return this;
+    public TcpRequestActionBuilder withCheck(Function<byte[], Boolean> validator) {
+        this.wrapped.validators().add(validator);
+        return new TcpRequestActionBuilder(this.wrapped);
     }
 
     /**
@@ -55,22 +33,18 @@ public class TcpRequestBuilder implements ActionBuilder {
      *
      * @return This TcpRequestBuilder instance for method chaining.
      */
-    public TcpRequestBuilder withLengthHeader() {
-        this.addLengthHeader = true;
-        this.lengthHeaderType = LengthHeaderType.TWO_BYTE_BIG_ENDIAN; // Default to 2-byte big endian
-        return this;
+    public TcpRequestActionBuilder withLengthHeader() {
+        return new TcpRequestActionBuilder(this.wrapped.addLengthHeader(true).lengthHeaderType(LengthHeaderType.TWO_BYTE_BIG_ENDIAN));
     }
 
     /**
      * Enables automatic addition of a length header to the message with a specified format.
      *
-     * @param headerType The format of the length header (e.g., 2-byte or 4-byte, big-endian or little-endian).
+     * @param lengthHeaderType The format of the length header (e.g., 2-byte or 4-byte, big-endian or little-endian).
      * @return This TcpRequestBuilder instance for method chaining.
      */
-    public TcpRequestBuilder withLengthHeader(LengthHeaderType headerType) {
-        this.addLengthHeader = true;
-        this.lengthHeaderType = headerType;
-        return this;
+    public TcpRequestActionBuilder withLengthHeader(LengthHeaderType lengthHeaderType) {
+        return new TcpRequestActionBuilder(this.wrapped.addLengthHeader(true).lengthHeaderType(lengthHeaderType));
     }
 
     /**
@@ -79,9 +53,8 @@ public class TcpRequestBuilder implements ActionBuilder {
      *
      * @return This TcpRequestBuilder instance for method chaining.
      */
-    public  TcpRequestBuilder withReuseConnection() {
-        this.reuseConnection = true;
-        return this;
+    public TcpRequestActionBuilder withReuseConnection() {
+        return new TcpRequestActionBuilder(this.wrapped.reuseConnection(true));
     }
 
     /**
@@ -90,9 +63,8 @@ public class TcpRequestBuilder implements ActionBuilder {
      * @param reuseConnection A boolean indicating whether to reuse the connection.
      * @return This TcpRequestBuilder instance for method chaining.
      */
-    public  TcpRequestBuilder withReuseConnection(boolean reuseConnection) {
-        this.reuseConnection = reuseConnection;
-        return this;
+    public TcpRequestActionBuilder withReuseConnection(boolean reuseConnection) {
+        return new TcpRequestActionBuilder(this.wrapped.reuseConnection(reuseConnection));
     }
 
     /**
@@ -102,9 +74,8 @@ public class TcpRequestBuilder implements ActionBuilder {
      * @param connectionKey A string representing the connection key.
      * @return This TcpRequestBuilder instance for method chaining.
      */
-    public TcpRequestBuilder withConnectionKey(String connectionKey) {
-        this.connectionKey = connectionKey;
-        return this;
+    public TcpRequestActionBuilder withConnectionKey(String connectionKey) {
+        return new TcpRequestActionBuilder(this.wrapped.connectionKey(connectionKey));
     }
 
     /**
@@ -114,15 +85,7 @@ public class TcpRequestBuilder implements ActionBuilder {
      */
     @Override
     public io.gatling.core.action.builder.ActionBuilder asScala() {
-        return new com.github.koosty.gatling.tcp.TcpRequestActionBuilder(
-                requestName,
-                message,
-                addLengthHeader,
-                lengthHeaderType,
-                validators,
-                reuseConnection,
-                connectionKey
-        );
+        return wrapped;
     }
 
     /**

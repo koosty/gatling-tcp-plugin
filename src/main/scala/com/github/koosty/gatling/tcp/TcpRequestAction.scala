@@ -1,6 +1,6 @@
 package com.github.koosty.gatling.tcp
 
-import com.github.koosty.gatling.tcp.javaapi.TcpRequestBuilder.LengthHeaderType
+import com.github.koosty.gatling.tcp.javaapi.TcpRequestActionBuilder.LengthHeaderType
 import io.gatling.commons.stats.{KO, OK}
 import io.gatling.commons.util.Clock
 import io.gatling.core.action.Action
