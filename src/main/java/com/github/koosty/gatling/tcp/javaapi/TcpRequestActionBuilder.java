@@ -84,7 +84,7 @@ public class TcpRequestActionBuilder implements ActionBuilder {
      * @return A Scala-compatible ActionBuilder instance configured with the current settings.
      */
     @Override
-    public io.gatling.core.action.builder.ActionBuilder asScala() {
+    public com.github.koosty.gatling.tcp.TcpRequestActionBuilder  asScala() {
         return wrapped;
     }
 
