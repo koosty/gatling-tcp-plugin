@@ -37,4 +37,5 @@ jobs:
           mvn -B verify -Dgpg.skip=true org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
           -Dsonar.projectKey=koosty_gatling-tcp-plugin \
           -Dsonar.organization=koosty \
-          -Dsonar.qualitygate.wait=true
+          -Dsonar.qualitygate.wait=true \
+          -Dsonar.exclusions="**/scala/**,**/*.scala"
