@@ -37,7 +37,7 @@ jobs:
       - name: Build and analyze
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify -Dgpg.skip=true org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=koosty_gatling-tcp-plugin -Dsonar.organization=koosty
+        run: mvn -B verify -Dgpg.skip=true org.sonarsource.scanner.maven:sonar-maven-plugin:sonar -Dsonar.projectKey=koosty_gatling-tcp-plugin -Dsonar.organization=koosty -Dsonar.exclusions="**/scala/**,**/*.scala"
       - name: Publish to Maven Central
         run: mvn clean deploy
         env:
